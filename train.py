@@ -10,6 +10,7 @@ from config import Config
 from model import ModelV1
 from PIL import Image
 import json
+import matplotlib.pyplot as plt
 
 
 def train(model = ModelV1(),dataloader = None,config = Config()):
@@ -33,10 +34,16 @@ def train(model = ModelV1(),dataloader = None,config = Config()):
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     
 
-    
+    loss_images_dir = config.log_path
+    os.makedirs(loss_images_dir, exist_ok=True)
+    loss_image_path = os.path.join(loss_images_dir, 'loss_plot.png')
+
+
+    all_losses = []
     
     for epoch in range(num_epochs):
         model.train()
+        epoch_losses = []
         running_loss = 0.0
 
         total_batches = len(dataloader)
@@ -46,6 +53,7 @@ def train(model = ModelV1(),dataloader = None,config = Config()):
             targets = targets.to(device)
 
             outputs = model(img_pf, img_pj)
+            targets = targets.unsqueeze(1)
             loss = criterion(outputs, targets)
 
             optimizer.zero_grad()
@@ -53,9 +61,30 @@ def train(model = ModelV1(),dataloader = None,config = Config()):
             optimizer.step()
 
             running_loss += loss.item()
+            epoch_losses.append(loss.item())
 
             sys.stdout.write(f"\r[Train] Epoch [{epoch+1}/{num_epochs}], Batch [{batch_idx+1}/{total_batches}], Loss: {loss.item():.4f}")
             sys.stdout.flush()
+        
+        
+        all_losses.extend(epoch_losses)
+        plt.figure(figsize=(10, 6))
+
+        
+        plt.plot(all_losses, label='Loss per Batch (all epochs)', color='blue')
+
+        
+        start_idx = len(all_losses) - len(epoch_losses)
+        plt.plot(range(start_idx, len(all_losses)), epoch_losses, label=f"Epoch {epoch+1}", color='red', linewidth=2)
+
+        plt.title(f"Loss per Batch (Epoch {epoch+1})")
+        plt.xlabel('Batch Index')
+        plt.ylabel('Loss')
+        plt.legend()
+        plt.grid(True)
+
+        plt.savefig(loss_image_path)
+        plt.close()
 
         avg_loss = running_loss / total_batches
         print(f"  ------> Epoch [{epoch+1}/{num_epochs}] Completed. Avg Loss: {avg_loss:.4f}")
@@ -100,6 +129,8 @@ def validate(model, dataloader, config = Config()):
             targets = targets.to(device)
 
             outputs = model(img_pf, img_pj)
+            targets = targets.unsqueeze(1)
+
             loss = criterion(outputs, targets)
 
             total_loss += loss.item()

@@ -16,7 +16,7 @@ class Config:
         self.test_split = 0.80
         
         self.criterion = torch.nn.MSELoss()
-        self.num_epochs = 1
+        self.num_epochs = 2
         self.learning_rate = 1e-4
 
 
@@ -25,4 +25,5 @@ class Config:
         self.save_interval = 5
         self.load_model = False
         self.model_load_path = r"/Users/maheshsaravanan/Documents/HemoScan/ProjectHS/Models/model_epoch_5.pth"
+        self.log_path = r"/Users/maheshsaravanan/Documents/HemoScan/ProjectHS/log"
         
