@@ -40,7 +40,7 @@ def train(model = ModelV1(),dataloader = None,config = Config()):
 
 
     all_losses = []
-    
+    print(f"Training on Device: {device}\n")
     for epoch in range(num_epochs):
         model.train()
         epoch_losses = []
