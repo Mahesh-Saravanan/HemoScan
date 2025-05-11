@@ -13,7 +13,7 @@ import json
 import matplotlib.pyplot as plt
 
 
-def train(model = ModelV1(),dataloader = None,config = Config()):
+def train(model = ModelV1(),dataloader = None,val_loader = None, config = Config()):
    
     device = config.device
     batch_size = config.batch_size
@@ -26,7 +26,7 @@ def train(model = ModelV1(),dataloader = None,config = Config()):
         
     
     criterion = config.criterion
-    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate,weight_decay=1e-5)
 
 
     if dataloader is None:
@@ -88,6 +88,10 @@ def train(model = ModelV1(),dataloader = None,config = Config()):
 
         avg_loss = running_loss / total_batches
         print(f"  ------> Epoch [{epoch+1}/{num_epochs}] Completed. Avg Loss: {avg_loss:.4f}")
+        if val_loader is not None:
+            val_loss, metrics = validate(model, val_loader, config, Print=False)
+            print(f"  ------> Validation Loss: {val_loss:.4f}, R2: {metrics['R2']:.4f}, MAPE: {metrics['MAPE (%)']:.4f}%")
+            
 
         if (epoch + 1) % config.save_interval == 0:
             torch.save(model.state_dict(), os.path.join(config.model_save_path, f"model_epoch_{epoch+1}.pth"))
@@ -110,7 +114,7 @@ def regression_metrics(y_true, y_pred):
         'MAPE (%)': mape
     }
 
-def validate(model, dataloader, config = Config()):
+def validate(model, dataloader, config = Config(),Print=True):
 
     model.eval()
     device = config.device
@@ -138,23 +142,23 @@ def validate(model, dataloader, config = Config()):
             all_preds.append(outputs)
             all_targets.append(targets)
 
-            
-            sys.stdout.write(
-                f"\r[Validation] Batch [{batch_idx+1}/{total_batches}] - Batch Loss: {loss.item():.4f}"
-            )
-            sys.stdout.flush()
+            if print:
+                sys.stdout.write(
+                    f"\r[Validation] Batch [{batch_idx+1}/{total_batches}] - Batch Loss: {loss.item():.4f}"
+                )
+                sys.stdout.flush()
 
     avg_loss = total_loss / total_batches
-    print(f"\n[Validation] Completed. Avg Loss: {avg_loss:.4f}")
+    if Print: print(f"\n[Validation] Completed. Avg Loss: {avg_loss:.4f}")
 
     
     preds = torch.cat(all_preds)
     targets = torch.cat(all_targets)
     metrics = regression_metrics(targets, preds)
-
-    print("\n[Validation Metrics]")
-    for key, value in metrics.items():
-        print(f"{key}: {value:.4f}")
+    if Print:
+        print("\n[Validation Metrics]")
+        for key, value in metrics.items():
+            print(f"{key}: {value:.4f}")
 
     return avg_loss, metrics
 

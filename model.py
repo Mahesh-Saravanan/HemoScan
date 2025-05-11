@@ -2,24 +2,43 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torchvision.models as models
-from torchvision.models import resnet18, ResNet18_Weights
 
+
+class CrossAttentionBlock(nn.Module):
+    def __init__(self, embed_dim, num_heads=4):
+        super(CrossAttentionBlock, self).__init__()
+        self.cross_attention = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
+        self.norm = nn.LayerNorm(embed_dim)
+    
+    def forward(self, query, key_value):
+        attn_output, _ = self.cross_attention(query, key_value, key_value)
+        output = self.norm(attn_output + query)  # Residual connection
+        return output
 
 
 class ModelV1(nn.Module):
     def __init__(self, freeze_backbone=True, unfreeze_from_layer='layer4'):
         super(ModelV1, self).__init__()
-        
-      
         self.resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-        self.resnet.fc = nn.Identity() 
-        
 
+        # Modify first convolution to accept HLA input (still 3 channels)
+        self.resnet.conv1 = torch.nn.Conv2d(
+            in_channels=3,  # HLA has 3 channels
+            out_channels=self.resnet.conv1.out_channels,
+            kernel_size=self.resnet.conv1.kernel_size,
+            stride=self.resnet.conv1.stride,
+            padding=self.resnet.conv1.padding,
+            bias=False
+        )
+        torch.nn.init.kaiming_normal_(self.resnet.conv1.weight, mode='fan_out', nonlinearity='relu')
+        # Replace FC layer with Identity
+        self.resnet.fc = nn.Identity()
+        # self.resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        # self.resnet.fc = nn.Identity()
+        
         if freeze_backbone:
             for param in self.resnet.parameters():
                 param.requires_grad = False
-            
- 
             unfreeze = False
             for name, module in self.resnet.named_children():
                 if name == unfreeze_from_layer:
@@ -27,20 +46,42 @@ class ModelV1(nn.Module):
                 if unfreeze:
                     for param in module.parameters():
                         param.requires_grad = True
+        
+        self.project = nn.Linear(512, 512)
 
-     
+        # Two Cross Attention blocks
+        self.cross_attention1 = CrossAttentionBlock(embed_dim=512, num_heads=4)  # Palm -> Back
+        self.cross_attention2 = CrossAttentionBlock(embed_dim=512, num_heads=4)  # Back -> Palm
+
+        # Final Regression Head
         self.fc = nn.Sequential(
-            nn.Linear(512 * 2, 256),
+            nn.Linear(512 * 2, 256),  # because we'll concat both
             nn.ReLU(),
-            nn.Dropout(0.2),
+            nn.Dropout(0.3),  # Slightly more dropout for small data
             nn.Linear(256, 1)
         )
 
     def forward(self, img1, img2):
-        x1 = self.resnet(img1)
-        x2 = self.resnet(img2)
-        x = torch.cat((x1, x2), dim=1)
-        output = self.fc(x)
+        feat1 = self.resnet(img1)  # Palm feature
+        feat2 = self.resnet(img2)  # Back feature
+        
+        feat1 = self.project(feat1)
+        feat2 = self.project(feat2)
+        
+        feat1 = feat1.unsqueeze(1)  # (B, 1, 512)
+        feat2 = feat2.unsqueeze(1)  # (B, 1, 512)
+
+        # Cross attention both ways
+        attn1 = self.cross_attention1(feat1, feat2)  # Palm attends to back
+        attn2 = self.cross_attention2(feat2, feat1)  # Back attends to palm
+
+        attn1 = attn1.squeeze(1)  # (B, 512)
+        attn2 = attn2.squeeze(1)  # (B, 512)
+
+        # Concatenate both attended features
+        combined = torch.cat([attn1, attn2], dim=1)  # (B, 1024)
+
+        output = self.fc(combined)
         return output
 
 
@@ -48,6 +89,6 @@ def initialize_weights(model):
     for name, param in model.named_parameters():
         if param.requires_grad:
             if param.dim() > 1:
-                init.kaiming_normal_(param)  
+                init.kaiming_normal_(param)
             else:
                 init.zeros_(param)
