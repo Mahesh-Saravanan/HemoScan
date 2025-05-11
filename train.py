@@ -115,10 +115,11 @@ def regression_metrics(y_true, y_pred):
         'MAPE (%)': mape
     }
 
-def validate(model, dataloader, config = Config(),Print=True):
+def validate(model, dataloader, config = Config(),Print=True,return_res=False):
 
     model.eval()
     device = config.device
+    model.to(device)
     criterion = config.criterion
 
     total_loss = 0.0
@@ -161,16 +162,18 @@ def validate(model, dataloader, config = Config(),Print=True):
         for key, value in metrics.items():
             print(f"{key}: {value:.4f}")
 
+    if return_res:
+        return avg_loss, metrics , [all_preds, all_targets]
     return avg_loss, metrics
 
-def inference(model, path, mean = 12, std = 8, config = Config()):
+def inference(model, path, mean = 12, transform = None, std = 8, config = Config()):
     model.eval()
 
     path_pf = os.path.join(path, "PF.JPG")
     path_pb = os.path.join(path, "PB.JPG")
 
     device = config.device
-    transform = config.transform
+    
 
     results = []
 
@@ -178,8 +181,9 @@ def inference(model, path, mean = 12, std = 8, config = Config()):
         
         img_pf = Image.open(path_pf).convert("RGB")
         img_pb = Image.open(path_pb).convert("RGB")
-
-        if transform:
+     
+        if transform is not None:
+           
             img_pf = transform(img_pf)
             img_pb = transform(img_pb)
 
@@ -200,4 +204,6 @@ def inference(model, path, mean = 12, std = 8, config = Config()):
                 actual_data = float(data['hb'])
 
         print(f"Predicted HB: {output:.2f}       | Actual HB: {actual_data:.2f}")
+        results.append(((output), actual_data))
+        return results
         

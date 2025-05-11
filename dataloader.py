@@ -41,6 +41,7 @@ class CustomDataloader(Dataset):
                     transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                          std=[0.5, 0.5, 0.5])  # Normalize H, L, A roughly to [-1, 1]
                 ])
+            
             else:
                 self.transform = transforms.Compose([
                     transforms.Lambda(lambda img: extract_hla(img)),
@@ -132,3 +133,5 @@ def create_dataloaders(data_dir, batch_size=32, test_split=0.2):
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
 
     return train_loader, val_loader, full_dataset.hb_mean, full_dataset.hb_std
+
+
