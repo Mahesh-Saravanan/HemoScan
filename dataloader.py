@@ -34,8 +34,8 @@ class CustomDataloader(Dataset):
             if not os.path.isdir(folder_path):
                 continue 
             
-            pf_file = os.path.join(folder_path, 'PF.JPG')
-            pb_file = os.path.join(folder_path, 'PB.JPG')
+            pf_file = os.path.join(folder_path, 'PF_processed.JPG')
+            pb_file = os.path.join(folder_path, 'PB_processed.JPG')
             json_file = os.path.join(folder_path, f"y{folder_name}.json")
 
             

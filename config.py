@@ -20,7 +20,7 @@ class Config:
         
         self.criterion = torch.nn.MSELoss()
         self.num_epochs = 20
-        self.learning_rate = 1e-5
+        self.learning_rate = 1e-3
 
 
 
