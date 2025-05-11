@@ -60,7 +60,7 @@ def DeepLabV3(image_batch, model, transform, device='mps'):
         orig_np = np.array(image_batch[idx]).astype(np.float32)
         mask_resized = cv2.resize(mask.cpu().numpy().astype(np.uint8), (orig_np.shape[1], orig_np.shape[0]))
 
-        dimmed = orig_np * 0.4
+        dimmed = orig_np * 1#0.4
         dimmed[mask_resized == 1] = orig_np[mask_resized == 1]
 
         processed = np.clip(dimmed, 0, 255).astype(np.uint8)

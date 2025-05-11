@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, random_split
 from PIL import Image
 from torchvision import transforms
 import numpy as np
-
+import cv2
 class CustomDataloader(Dataset):
     def __init__(self, data_dir, transform=None):
         super().__init__()
@@ -57,7 +57,23 @@ class CustomDataloader(Dataset):
         self.hb_std = np.std(np.array(self.targets))
 
 
+    def hsv2tensor(self, hsv_array, size=(224, 224), normalize=True):
+   
         
+        hsv_resized = cv2.resize(hsv_array, size)
+      
+
+        # Convert to float and scale to [0, 1]
+        hsv_tensor = torch.from_numpy(hsv_resized).float().permute(2, 0, 1) / 255.0
+
+        if normalize:
+            hsv_tensor = hsv_tensor / 255.0 
+            mean = torch.tensor([0.5, 0.5, 0.5]).view(3, 1, 1)
+            std = torch.tensor([0.5, 0.5, 0.5]).view(3, 1, 1)
+            hsv_tensor = (hsv_tensor - mean) / std
+
+        return hsv_tensor
+
     def __len__(self):
         return len(self.targets)
 
@@ -70,9 +86,12 @@ class CustomDataloader(Dataset):
         img_pf = Image.open(pf_path).convert("RGB")
         img_pj = Image.open(pj_path).convert("RGB")
 
-        if self.transform:
-            img_pf = self.transform(img_pf)
-            img_pj = self.transform(img_pj)
+        img_pf = cv2.cvtColor(np.array(img_pf), cv2.COLOR_RGB2HSV)
+        img_pj = cv2.cvtColor(np.array(img_pj), cv2.COLOR_RGB2HSV)
+       
+
+        img_pf = self.hsv2tensor(img_pf)
+        img_pj = self.hsv2tensor(img_pj)
 
         
         target_value = (target_value - self.hb_mean) / self.hb_std

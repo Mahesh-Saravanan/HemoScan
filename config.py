@@ -11,7 +11,7 @@ class Config:
                                     transforms.ToTensor(),
                                     transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                         std=[0.229, 0.224, 0.225])])
-        self.batch_size = 2
+        self.batch_size = 4
         
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
         # self.device = "cuda" if torch.cuda.is_available() else "cpu"

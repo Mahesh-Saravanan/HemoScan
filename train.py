@@ -7,13 +7,13 @@ import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from dataloader import CustomDataloader
 from config import Config
-from model import ModelV1
+from model import Model
 from PIL import Image
 import json
 import matplotlib.pyplot as plt
 
 
-def train(model = ModelV1(),dataloader = None,config = Config()):
+def train(model = Model(),dataloader = None,config = Config()):
    
     device = config.device
     batch_size = config.batch_size
