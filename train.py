@@ -87,10 +87,11 @@ def train(model = ModelV1(),dataloader = None,val_loader = None, config = Config
         plt.close()
 
         avg_loss = running_loss / total_batches
-        print(f"  ------> Epoch [{epoch+1}/{num_epochs}] Completed. Avg Loss: {avg_loss:.4f}")
         if val_loader is not None:
             val_loss, metrics = validate(model, val_loader, config, Print=False)
-            print(f"  ------> Validation Loss: {val_loss:.4f}, R2: {metrics['R2']:.4f}, MAPE: {metrics['MAPE (%)']:.4f}%")
+        print(f"  ------> Epoch [{epoch+1}/{num_epochs}] Completed. Avg Loss: {avg_loss:.4f}",f"  ------> Validation Loss: {val_loss:.4f}, R2: {metrics['R2']:.4f}, MAPE: {metrics['MAPE (%)']:.4f}%")
+        
+           
             
 
         if (epoch + 1) % config.save_interval == 0:
