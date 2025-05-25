@@ -89,12 +89,19 @@ def train(model = ModelV1(),dataloader = None,val_loader = None, config = Config
         avg_loss = running_loss / total_batches
         if val_loader is not None:
             val_loss, metrics = validate(model, val_loader, config, Print=False)
-        print(f"  ------> Epoch [{epoch+1}/{num_epochs}] Completed. Avg Loss: {avg_loss:.4f}",f"  ------> Validation Loss: {val_loss:.4f}, R2: {metrics['R2']:.4f}, MAPE: {metrics['MAPE (%)']:.4f}%")
+            print(f"  ------> Epoch [{epoch+1}/{num_epochs}] Completed. Avg Loss: {avg_loss:.4f}",f"  ------> Validation Loss: {val_loss:.4f}, R2: {metrics['R2']:.4f}, MAPE: {metrics['MAPE (%)']:.4f}%")
+
+        else:
+            val_loss = 0
+            metrics = None
+            print(f"  ------> Epoch [{epoch+1}/{num_epochs}] Completed. Avg Loss: {avg_loss:.4f}")
+
+        
         
            
             
 
-        if (epoch + 1) % config.save_interval == 0:
+        if (epoch + 1) % config.save_interval == 0 and config.save_interval > 0:
             torch.save(model.state_dict(), os.path.join(config.model_save_path, f"model_epoch_{epoch+1}.pth"))
             
 def regression_metrics(y_true, y_pred):
@@ -166,7 +173,7 @@ def validate(model, dataloader, config = Config(),Print=True,return_res=False):
         return avg_loss, metrics , [all_preds, all_targets]
     return avg_loss, metrics
 
-def inference(model, path, mean = 12, transform = None, std = 8, config = Config()):
+def inference1(model, path, mean = 12, transform = None, std = 8, config = Config(),Print = True):
     model.eval()
 
     path_pf = os.path.join(path, "PF.JPG")
@@ -202,8 +209,9 @@ def inference(model, path, mean = 12, transform = None, std = 8, config = Config
             with open(json_path, 'r') as f:
                 data = json.load(f)
                 actual_data = float(data['hb'])
+        # if np.abs(output-actual_data) < 1.0:
 
-        print(f"Predicted HB: {output:.2f}       | Actual HB: {actual_data:.2f}")
+        if Print:print(f"Predicted HB: {output:.2f}       | Actual HB: {actual_data:.2f}")
         results.append(((output), actual_data))
         return results
         

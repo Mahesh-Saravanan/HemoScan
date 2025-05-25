@@ -131,6 +131,7 @@ def create_dataloaders(data_dir, batch_size=32, test_split=0.2):
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
+    val_loader = None if len(val_loader)==0 else val_loader
 
     return train_loader, val_loader, full_dataset.hb_mean, full_dataset.hb_std
 

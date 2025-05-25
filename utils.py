@@ -2,18 +2,33 @@ import numpy as np
 import os
 import json
 import torch
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, precision_score, recall_score, f1_score,mean_absolute_error, mean_squared_error
 import matplotlib.pyplot as plt
+from PIL import Image
+import cv2
 
 def denormalize(tensor, mean, std):
     
     tensor = tensor * torch.tensor(std).view(1, 3, 1, 1) + torch.tensor(mean).view(1, 3, 1, 1)
     return tensor
 
+def extract_hla(image):
+    image = np.array(image)  # PIL → numpy (H, W, 3)
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
+    
+    h = hsv[:, :, 0:1]    # Hue channel
+    l = lab[:, :, 0:1]    # Lightness
+    a = lab[:, :, 1:2]    # A (red-green)
+    
+    hla = np.concatenate([h, l, a], axis=2)  # Shape: (H, W, 3)
+    hla = Image.fromarray(hla.squeeze().astype(np.uint8)) if hla.shape[2] == 1 else Image.fromarray(hla.astype(np.uint8))
+    return hla
 
 def get_metrics(results,threshold=12):
     
-    res = np.array(results).squeeze(1)
+    #res = np.array(results).squeeze(1)
+    res = results
     res = np.where(np.round(res) < threshold, 1, 0)
     y_pred = res[:, 0]
     y_true = res[:, 1]
@@ -59,6 +74,9 @@ def get_metrics(results,threshold=12):
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred)  # sensitivity = recall
     f1 = f1_score(y_true, y_pred)
+   
+
+
 
     # Calculate specificity manually
     TN = cm[1, 1]
@@ -71,3 +89,5 @@ def get_metrics(results,threshold=12):
     print(f"Sensitivity (Recall): {recall:.3f}")
     print(f"Specificity: {specificity:.3f}")
     print(f"F1 Score: {f1:.3f}")
+    print(f"MAE: {np.mean(np.abs(results[:,0]-results[:,1])):.3f} g/dL")
+    

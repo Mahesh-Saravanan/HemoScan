@@ -31,7 +31,7 @@ class CrossAttentionBlock(nn.Module):
 
 class ModelV1(nn.Module):
     def __init__(self, freeze_backbone=True, unfreeze_from_layer='layer4'):
-        super(ModelV1, self).__init__()
+        super().__init__()
         self.resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
 
         # Modify input if needed
