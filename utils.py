@@ -6,6 +6,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_s
 import matplotlib.pyplot as plt
 from PIL import Image
 import cv2
+import random
 
 def denormalize(tensor, mean, std):
     
@@ -91,3 +92,39 @@ def get_metrics(results,threshold=12):
     print(f"F1 Score: {f1:.3f}")
     print(f"MAE: {np.mean(np.abs(results[:,0]-results[:,1])):.3f} g/dL")
     
+
+
+def plot_image_pairs(data, n_rows=3, n_cols=3):
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 4, n_rows * 3))
+    axes = axes.flatten()
+
+    # Randomly select N samples (N = n_rows * n_cols)
+    sample_data = random.sample(data, min(len(data), n_rows * n_cols))
+
+    for idx, ((img1, img2), result, actual) in enumerate(sample_data):
+        # Resize to same height if needed
+        if img1.size[1] != img2.size[1]:
+            height = min(img1.size[1], img2.size[1])
+            img1 = img1.resize((img1.width, height))
+            img2 = img2.resize((img2.width, height))
+
+        # Stitch horizontally
+        total_width = img1.width + img2.width
+        stitched = Image.new("RGB", (total_width, img1.height))
+        stitched.paste(img1, (0, 0))
+        stitched.paste(img2, (img1.width, 0))
+
+        # Plot
+        threshold = 12
+        Res = f"Predicted- {'Positive' if result[0] < threshold else 'Negative'}\nActual- {'Positive' if actual[0] < threshold else 'Negative'}"
+        ax = axes[idx]
+        ax.imshow(stitched)
+        ax.set_title(Res, fontsize=10)
+        ax.axis('off')
+
+    # Hide unused subplots (in case len(data) < n_rows * n_cols)
+    for ax in axes[len(sample_data):]:
+        ax.axis('off')
+
+    plt.tight_layout()
+    plt.show()

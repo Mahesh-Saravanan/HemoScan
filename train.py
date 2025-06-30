@@ -183,11 +183,13 @@ def inference1(model, path, mean = 12, transform = None, std = 8, config = Confi
     
 
     results = []
+    images = []
 
     with torch.no_grad():
         
         img_pf = Image.open(path_pf).convert("RGB")
         img_pb = Image.open(path_pb).convert("RGB")
+        images.append((img_pf, img_pb))
      
         if transform is not None:
            
@@ -201,6 +203,8 @@ def inference1(model, path, mean = 12, transform = None, std = 8, config = Confi
         output = output.cpu().numpy()[0]
         output = output * std + mean
         output = round(float(output),2)
+        images.append([output])
+
 
         json_files = [file for file in os.listdir(path) if file.endswith(".json")]
 
@@ -210,8 +214,9 @@ def inference1(model, path, mean = 12, transform = None, std = 8, config = Confi
                 data = json.load(f)
                 actual_data = float(data['hb'])
         # if np.abs(output-actual_data) < 1.0:
+        images.append([actual_data])
 
         if Print:print(f"Predicted HB: {output:.2f}       | Actual HB: {actual_data:.2f}")
         results.append(((output), actual_data))
-        return results
+        return results,images
         
